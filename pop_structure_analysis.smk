@@ -16,7 +16,8 @@ rule all:
         expand(f"{admixture_dir}/{vcf_basename}.K{{K}}.Q", K=K_values),
         expand(f"{admixture_dir}/{vcf_basename}.K{{K}}.P", K=K_values),
         expand(f"{admixture_dir}/log{{K}}.out", K=K_values),
-
+        f"pop_stru/phylo/{vcf_basename}.nwk",
+        "pop_stru/PCA/PCA.eigenvec"
 
 rule VCF2plink:
     input:
