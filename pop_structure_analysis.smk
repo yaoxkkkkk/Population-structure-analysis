@@ -17,7 +17,8 @@ rule all:
         expand(f"pop_stru/ADMIXTURE/{vcf_basename}.K{{K}}.P", K=K_values),
         expand(f"pop_stru/ADMIXTURE/log{{K}}.out", K=K_values),
         f"pop_stru/phylo/{vcf_basename}.nwk",
-        "pop_stru/PCA/PCA.eigenvec"
+        f"pop_stru/PCA/{vcf_basename}.eigenvec",
+        f"pop_stru/PCA/{vcf_basename}.eigenval"
 
 rule VCF2plink:
     input:
@@ -32,17 +33,17 @@ rule VCF2plink:
     shell:
         """
         bcftools view \
-		-H {input} \
-		| cut -f 1 \
-		| uniq \
-		| awk '{{print $0"\t"$0}}' \
-		> {output.mapfile}
+        -H {input} \
+        | cut -f 1 \
+        | uniq \
+        | awk '{{print $0"\t"$0}}' \
+        > {params}.map
 
         vcftools \
-		--vcf {input} \
-		--plink \
-		--chrom-map {output.mapfile} \
-		--out {output.pedfile}
+        --vcf {input} \
+        --plink \
+        --chrom-map {output.mapfile} \
+        --out {params}.ped
         """
 
 rule PLINKmakebed:
@@ -181,15 +182,17 @@ rule PCA:
     input:
         vcf_file=config["vcf"]
     output:
-        "pop_stru/PCA/PCA",
-        "pop_stru/PCA/PCA.eigenvec"
+        f"pop_stru/PCA/{vcf_basename}.eigenvec",
+        f"pop_stru/PCA/{vcf_basename}.eigenval"
     threads: 32
     log:
         "logs/PCA.log"
+    params:
+        f"pop_stru/PCA/{vcf_basename}"
     shell:
         """
         VCF2PCACluster -InVCF {input} \
-        -OutPut {output[0]} \
+        -OutPut {params} \
         -MAF 0.05 \
         &> {log}
         """
