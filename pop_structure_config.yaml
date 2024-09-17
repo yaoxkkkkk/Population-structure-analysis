@@ -1,4 +1,10 @@
 vcf: "path/to/sample.vcf.gz"
 
+# PLINK prune parameters
+indep_pairwise:
+  window_size: 500
+  step_size: 50
+  r2: 0.8
+
 # K values in ADMIXTURE
 K_values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
