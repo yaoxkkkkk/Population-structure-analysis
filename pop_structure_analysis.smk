@@ -13,9 +13,9 @@ K_values = config["K_values"]
 
 rule all:
     input:
-        expand(f"{admixture_dir}/{vcf_basename}.K{{K}}.Q", K=K_values),
-        expand(f"{admixture_dir}/{vcf_basename}.K{{K}}.P", K=K_values),
-        expand(f"{admixture_dir}/log{{K}}.out", K=K_values),
+        expand(f"pop_stru/ADMIXTURE/{vcf_basename}.K{{K}}.Q", K=K_values),
+        expand(f"pop_stru/ADMIXTURE/{vcf_basename}.K{{K}}.P", K=K_values),
+        expand(f"pop_stru/ADMIXTURE/log{{K}}.out", K=K_values),
         f"pop_stru/phylo/{vcf_basename}.nwk",
         "pop_stru/PCA/PCA.eigenvec"
 
@@ -23,110 +23,113 @@ rule VCF2plink:
     input:
         vcf_file=config["vcf"]
     output:
-        f"plink/{vcf_basename}",
         f"plink/{vcf_basename}.ped",
         f"plink/{vcf_basename}.map"
     log:
         "logs/vcf2plink.log"
+    params:
+        f"plink/{vcf_basename}"
     shell:
         """
         vcftools \
-	--vcf {input.vcf_file} \
-	--plink \
-	--out {output[0]} \
+        --vcf {input.vcf_file} \
+        --plink \
+        --out {params} \
         &> {log}
         """
 
 rule PLINKmakebed:
     input:
-        f"plink/{vcf_basename}",
         f"plink/{vcf_basename}.ped",
         f"plink/{vcf_basename}.map"
     output:
-        f"plink/{vcf_basename}",
         f"plink/{vcf_basename}.bed",
         f"plink/{vcf_basename}.bim",
         f"plink/{vcf_basename}.fam",
         f"plink/{vcf_basename}.nosex"
     log:
         "logs/plinkmakebed.log"
+    params:
+        f"plink/{vcf_basename}"
     shell:
         """
         plink \
-        --file {input[0]} \
+        --file {params} \
         --make-bed \
         --double-id \
-        --out {output[0]} \
+        --out {params} \
         &> {log}
         """
 
 rule PLINKprune:
     input:
-        f"plink/{vcf_basename}",
         f"plink/{vcf_basename}.bed",
         f"plink/{vcf_basename}.bim",
         f"plink/{vcf_basename}.fam"
     output:
-        f"plink/{vcf_basename}.pruned",
         f"plink/{vcf_basename}.pruned.in",
         f"plink/{vcf_basename}.pruned.out"
     log:
         "logs/plinkprune.log"
+    params:
+        f"plink/{vcf_basename}",
+        f"plink/{vcf_basename}.pruned"
     shell:
         """
         plink \
-        -bfile {input[0]} \
+        -bfile {params[0]} \
         --indep-pairwise 500 50 0.2 \
-        --out {output[0]} \
+        --out {params[1]} \
         &> {log}
         """
 
 rule PLINKpruneExtract:
     input:
-        f"plink/{vcf_basename}",
-        f"plink/{vcf_basename}.pruned",
         f"plink/{vcf_basename}.bed",
         f"plink/{vcf_basename}.bim",
         f"plink/{vcf_basename}.fam",
         f"plink/{vcf_basename}.pruned.in",
         f"plink/{vcf_basename}.pruned.out"
     output:
-        f"plink/{vcf_basename}.pruned",
         f"plink/{vcf_basename}.pruned.bed",
         f"plink/{vcf_basename}.pruned.bim",
         f"plink/{vcf_basename}.pruned.fam",
         f"plink/{vcf_basename}.pruned.nosex"
     log:
         "logs/plinkpruneextract.log"
+    params:
+        f"plink/{vcf_basename}",
+        f"plink/{vcf_basename}.pruned"
     shell:
         """
         plink \
-        -bfile {input[0]} \
+        -bfile {params[0]} \
         --make-bed \
-        --extract {input[5]} \
-        --out {output[0]} \
+        --extract {input[3]} \
+        --out {params[1]} \
         &> {log}
         """
 
 rule PLINKprune2vcf:
     input:
-        f"plink/{vcf_basename}.pruned",
         f"plink/{vcf_basename}.pruned.bed",
         f"plink/{vcf_basename}.pruned.bim",
         f"plink/{vcf_basename}.pruned.fam",
         f"plink/{vcf_basename}.pruned.nosex"
     output:
-        f"{vcf_basename}.pruned",
         f"{vcf_basename}.pruned.vcf"
     log:
         "logs/plinkprune2vcf.log"
+    params:
+        f"plink/{vcf_basename}",
+        f"{vcf_basename}.pruned"
     threads: 16
     shell:
         """
         plink \
-        --bfile {input[0]} \
+        --bfile {params[0]} \
         --export vcf \
-        --out {output[0]} \
+        --out {params[1]} \
         &> {log}
         """
 
@@ -150,7 +153,6 @@ rule VCF2phylip:
     input:
         f"{vcf_basename}.pruned.vcf.gz"
     output:
-        directory("pop_stru/phylo/"),
         f"pop_stru/phylo/{vcf_basename}.pruned.min4.fasta"
     log:
         "logs/vcf2phylip.log"
@@ -158,7 +160,7 @@ rule VCF2phylip:
         """
         python script/vcf2phylip.py \
         -i {input} \
-        --output-folder {output[0]} \
+        --output-folder phylo/ \
         -r \
         -p \
         -f \
@@ -186,13 +188,13 @@ rule ADMIXTURE:
     input:
         f"plink/{vcf_basename}.pruned.bed"
     output:
-        Q_file=f"{admixture_dir}/{vcf_basename}.K{{K}}.Q",
-        P_file=f"{admixture_dir}/{vcf_basename}.K{{K}}.P",
-        log_file=f"{admixture_dir}/log{{K}}.out"
+        Q_file=f"pop_stru/ADMIXTURE/{vcf_basename}.K{{K}}.Q",
+        P_file=f"pop_stru/ADMIXTURE/{vcf_basename}.K{{K}}.P",
+        log_file=f"pop_stru/ADMIXTURE/log{{K}}.out"
     params:
-        K=lambda wildcards: wildcards.K  # 从 wildcards 中提取 K 值
+        K=lambda wildcards: wildcards.K
     log:
-        "{output.log_file}"
+        f"pop_stru/ADMIXTURE/log{{K}}.out"
     shell:
         """
         admixture --cv {input} {params.K} | tee {log}
