@@ -23,19 +23,26 @@ rule VCF2plink:
     input:
         vcf_file=config["vcf"]
     output:
-        f"plink/{vcf_basename}.ped",
-        f"plink/{vcf_basename}.map"
+        mapfile=f"plink/{vcf_basename}.map",
+        pedfile=f"plink/{vcf_basename}.ped"
     log:
         "logs/vcf2plink.log"
     params:
         f"plink/{vcf_basename}"
     shell:
         """
+        bcftools view \
+		-H {input} \
+		| cut -f 1 \
+		| uniq \
+		| awk '{{print $0"\t"$0}}' \
+		> {output.mapfile}
+
         vcftools \
-        --vcf {input.vcf_file} \
-        --plink \
-        --out {params} \
-        &> {log}
+		--vcf {input} \
+		--plink \
+		--chrom-map {output.mapfile} \
+		--out {output.pedfile}
         """
 
 rule PLINKmakebed:
@@ -72,14 +79,17 @@ rule PLINKprune:
     log:
         "logs/plinkprune.log"
     params:
-        f"plink/{vcf_basename}",
-        f"plink/{vcf_basename}.pruned"
+        bfile=f"plink/{vcf_basename}",
+        out=f"plink/{vcf_basename}.pruned",
+        window_size=config["indep_pairwise"]["window_size"],
+        step_size=config["indep_pairwise"]["step_size"],
+        r2=config["indep_pairwise"]["r2"]
     shell:
         """
         plink \
-        -bfile {params[0]} \
-        --indep-pairwise 500 50 0.2 \
-        --out {params[1]} \
+        -bfile {params.bfile} \
+        --indep-pairwise {params.window_size} {params.step_size} {params.r2} \
+        --out {params.out} \
         &> {log}
         """
 
