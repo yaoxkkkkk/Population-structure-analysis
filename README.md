@@ -2,7 +2,7 @@
 A pipeline uses SNP vcf file to conduct population structure analysis. 
 
 ## Dependent software/script
-- PLINK
+- PLINK1.9
 - VCF2PCACluster
 - ADMIXTURE
 - FastTree
