@@ -20,16 +20,13 @@ rule all:
         f"pop_stru/PCA/{vcf_basename}.eigenvec",
         f"pop_stru/PCA/{vcf_basename}.eigenval"
 
-rule VCF2plink:
+rule VCF2plinkmap:
     input:
         vcf_file=config["vcf"]
     output:
-        mapfile=f"plink/{vcf_basename}.map",
-        pedfile=f"plink/{vcf_basename}.ped"
+        mapfile=f"plink/{vcf_basename}.map"
     log:
         "logs/vcf2plink.log"
-    params:
-        f"plink/{vcf_basename}"
     shell:
         """
         bcftools view \
@@ -37,15 +34,26 @@ rule VCF2plink:
         | cut -f 1 \
         | uniq \
         | awk '{{print $0"\t"$0}}' \
-        > {params}.map
-
-        vcftools \
-        --vcf {input} \
-        --plink \
-        --chrom-map {output.mapfile} \
-        --out {params}.ped
+        > {output.mapfile}
         """
 
+rule VCF2plinkped:
+    input:
+        vcf_file=config["vcf"],
+        mapfile=f"plink/{vcf_basename}.map"
+    output:
+        pedfile=f"plink/{vcf_basename}.ped"
+    log:
+        "logs/vcf2plink.log"
+    shell:
+        """
+        vcftools \
+        --vcf {input.vcf_file} \
+        --plink \
+        --chrom-map {input.mapfile} \
+        --out {output.pedfile}
+        """
+		
 rule PLINKmakebed:
     input:
         f"plink/{vcf_basename}.ped",
@@ -65,6 +73,7 @@ rule PLINKmakebed:
         --file {params} \
         --make-bed \
         --double-id \
+        --allow-extra-chr \
         --out {params} \
         &> {log}
         """
@@ -75,22 +84,22 @@ rule PLINKprune:
         f"plink/{vcf_basename}.bim",
         f"plink/{vcf_basename}.fam"
     output:
-        f"plink/{vcf_basename}.pruned.in",
-        f"plink/{vcf_basename}.pruned.out"
+        f"plink/{vcf_basename}.prune.in",
+        f"plink/{vcf_basename}.prune.out"
     log:
         "logs/plinkprune.log"
     params:
-        bfile=f"plink/{vcf_basename}",
-        out=f"plink/{vcf_basename}.pruned",
+        file=f"plink/{vcf_basename}",
         window_size=config["indep_pairwise"]["window_size"],
         step_size=config["indep_pairwise"]["step_size"],
         r2=config["indep_pairwise"]["r2"]
     shell:
         """
         plink \
-        -bfile {params.bfile} \
+        --allow-extra-chr \
+        -bfile {params.file} \
         --indep-pairwise {params.window_size} {params.step_size} {params.r2} \
-        --out {params.out} \
+        --out {params.file} \
         &> {log}
         """
 
@@ -99,21 +108,22 @@ rule PLINKpruneExtract:
         f"plink/{vcf_basename}.bed",
         f"plink/{vcf_basename}.bim",
         f"plink/{vcf_basename}.fam",
-        f"plink/{vcf_basename}.pruned.in",
-        f"plink/{vcf_basename}.pruned.out"
+        f"plink/{vcf_basename}.prune.in",
+        f"plink/{vcf_basename}.prune.out"
     output:
-        f"plink/{vcf_basename}.pruned.bed",
-        f"plink/{vcf_basename}.pruned.bim",
-        f"plink/{vcf_basename}.pruned.fam",
-        f"plink/{vcf_basename}.pruned.nosex"
+        f"plink/{vcf_basename}.prune.bed",
+        f"plink/{vcf_basename}.prune.bim",
+        f"plink/{vcf_basename}.prune.fam",
+        f"plink/{vcf_basename}.prune.nosex"
     log:
         "logs/plinkpruneextract.log"
     params:
         f"plink/{vcf_basename}",
-        f"plink/{vcf_basename}.pruned"
+        f"plink/{vcf_basename}.prune"
     shell:
         """
         plink \
+        --allow-extra-chr \
         -bfile {params[0]} \
         --make-bed \
         --extract {input[3]} \
@@ -123,32 +133,33 @@ rule PLINKpruneExtract:
 
 rule PLINKprune2vcf:
     input:
-        f"plink/{vcf_basename}.pruned.bed",
-        f"plink/{vcf_basename}.pruned.bim",
-        f"plink/{vcf_basename}.pruned.fam",
-        f"plink/{vcf_basename}.pruned.nosex"
+        f"plink/{vcf_basename}.prune.bed",
+        f"plink/{vcf_basename}.prune.bim",
+        f"plink/{vcf_basename}.prune.fam",
+        f"plink/{vcf_basename}.prune.nosex"
     output:
-        f"{vcf_basename}.pruned.vcf"
+        f"{vcf_basename}.prune.vcf"
     log:
         "logs/plinkprune2vcf.log"
     params:
         f"plink/{vcf_basename}",
-        f"{vcf_basename}.pruned"
+        f"{vcf_basename}.prune"
     threads: 16
     shell:
         """
         plink \
+        --allow-extra-chr \
         --bfile {params[0]} \
         --export vcf \
         --out {params[1]} \
         &> {log}
         """
 
-rule CompressPrunedvcf:
+rule CompressPrunevcf:
     input:
-        f"{vcf_basename}.pruned.vcf"
+        f"{vcf_basename}.prune.vcf"
     output:
-        f"{vcf_basename}.pruned.vcf.gz"
+        f"{vcf_basename}.prune.vcf.gz"
     log:
         "logs/bgzip.log"
     threads: 16
@@ -162,9 +173,9 @@ rule CompressPrunedvcf:
 
 rule VCF2phylip:
     input:
-        f"{vcf_basename}.pruned.vcf.gz"
+        f"{vcf_basename}.prune.vcf.gz"
     output:
-        f"pop_stru/phylo/{vcf_basename}.pruned.min4.fasta"
+        f"pop_stru/phylo/{vcf_basename}.prune.min4.fasta"
     log:
         "logs/vcf2phylip.log"
     shell:
@@ -199,7 +210,7 @@ rule PCA:
 
 rule ADMIXTURE:
     input:
-        f"plink/{vcf_basename}.pruned.bed"
+        f"plink/{vcf_basename}.prune.bed"
     output:
         Q_file=f"pop_stru/ADMIXTURE/{vcf_basename}.K{{K}}.Q",
         P_file=f"pop_stru/ADMIXTURE/{vcf_basename}.K{{K}}.P",
@@ -215,7 +226,7 @@ rule ADMIXTURE:
 
 rule Phylogenictree:
     input:
-        f"pop_stru/phylo/{vcf_basename}.pruned.min4.fasta"
+        f"pop_stru/phylo/{vcf_basename}.prune.min4.fasta"
     output:
         f"pop_stru/phylo/{vcf_basename}.nwk"
     log:
