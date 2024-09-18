@@ -19,6 +19,6 @@ A pipeline uses SNP vcf file to conduct population structure analysis.
 
 ## What to input
 Just vcf file containing your population variant information.
-> Since ADMIXTURE only accpets vcf file with integer format chromosome ID (e.g. 01 for Chr01), so please remeber modify your file.
+> Since ADMIXTURE only accpets vcf file with integer format chromosome ID (e.g. 01 for Chr01), please remeber modify your file.
 
 ## What to output
