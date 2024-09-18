@@ -22,3 +22,6 @@ Just vcf file containing your population variant information.
 > Since ADMIXTURE only accpets vcf file with integer format chromosome ID (e.g. 01 for Chr01), please remeber modify your file.
 
 ## What to output
+- PCA eigen principle component file (used for PCA plot)
+- Tree file in nwk format
+- ADMIXTURE Q file and P file
