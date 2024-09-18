@@ -20,13 +20,11 @@ rule all:
         f"pop_stru/PCA/{vcf_basename}.eigenvec",
         f"pop_stru/PCA/{vcf_basename}.eigenval"
 
-rule VCF2plinkmap:
+rule VCF2mapfile:
     input:
         vcf_file=config["vcf"]
     output:
-        mapfile=f"plink/{vcf_basename}.map"
-    log:
-        "logs/vcf2plink.log"
+        mapfile=temp(f"plink/{vcf_basename}.mapfile")
     shell:
         """
         bcftools view \
@@ -37,23 +35,27 @@ rule VCF2plinkmap:
         > {output.mapfile}
         """
 
-rule VCF2plinkped:
+rule VCF2plink:
     input:
         vcf_file=config["vcf"],
-        mapfile=f"plink/{vcf_basename}.map"
+        mapfile=f"plink/{vcf_basename}.mapfile"
     output:
-        pedfile=f"plink/{vcf_basename}.ped"
+        map=f"plink/{vcf_basename}.map",
+        ped=f"plink/{vcf_basename}.ped"
     log:
         "logs/vcf2plink.log"
+    params:
+        f"plink/{vcf_basename}"
     shell:
         """
         vcftools \
         --vcf {input.vcf_file} \
         --plink \
         --chrom-map {input.mapfile} \
-        --out {output.pedfile}
+        --out {params} \
+		&> {log}
         """
-		
+        
 rule PLINKmakebed:
     input:
         f"plink/{vcf_basename}.ped",
@@ -149,6 +151,7 @@ rule PLINKprune2vcf:
         """
         plink \
         --allow-extra-chr \
+        --const-fid 0 \
         --bfile {params[0]} \
         --export vcf \
         --out {params[1]} \
@@ -162,12 +165,10 @@ rule CompressPrunevcf:
         f"{vcf_basename}.prune.vcf.gz"
     log:
         "logs/bgzip.log"
-    threads: 16
+    threads: 4
     shell:
         """
-        bgzip \
-        -@ {threads} \
-        {input} \
+        bgzip {input} \
         &> {log}
         """
 
@@ -178,11 +179,13 @@ rule VCF2phylip:
         f"pop_stru/phylo/{vcf_basename}.prune.min4.fasta"
     log:
         "logs/vcf2phylip.log"
+    params:
+        "pop_stru/phylo/"
     shell:
         """
         python script/vcf2phylip.py \
         -i {input} \
-        --output-folder phylo/ \
+        --output-folder {params} \
         -r \
         -p \
         -f \
