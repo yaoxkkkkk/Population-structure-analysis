@@ -53,7 +53,7 @@ rule VCF2plink:
         --plink \
         --chrom-map {input.mapfile} \
         --out {params} \
-		&> {log}
+        &> {log}
         """
         
 rule PLINKmakebed:
@@ -163,13 +163,10 @@ rule CompressPrunevcf:
         f"{vcf_basename}.prune.vcf"
     output:
         f"{vcf_basename}.prune.vcf.gz"
-    log:
-        "logs/bgzip.log"
     threads: 4
     shell:
         """
-        bgzip {input} \
-        &> {log}
+        bgzip {input}
         """
 
 rule VCF2phylip:
