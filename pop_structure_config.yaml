@@ -1,4 +1,5 @@
-vcf: "path/to/sample.vcf.gz"
+vcf2phylip_path: "/path/to/vcf2phylip.py"
+vcf: "/path/to/sample.vcf.gz"
 
 # PLINK prune parameters
 indep_pairwise:
