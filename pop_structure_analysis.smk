@@ -213,6 +213,11 @@ rule ADMIXTURE:
     shell:
         """
         admixture --cv {input} {params.K} | tee {log}
+
+        mv {vcf_basename}.K{params.K}.P {output.P_file}
+        mv {vcf_basename}.K{params.K}.Q {output.Q_file}
+
+        grep -h CV pop_stru/ADMIXTURE/log*.out > pop_stru/ADMIXTURE/CV_error.txt
         """
 
 rule Phylogenictree:
