@@ -49,11 +49,11 @@ rule VCF2plink:
     shell:
         """
         vcftools \
-        --vcf {input.vcf_file} \
+        --gzvcf {input.vcf_file} \
         --plink \
         --chrom-map {input.mapfile} \
         --out {params} \
-        &> {log}
+		&> {log}
         """
         
 rule PLINKmakebed:
@@ -140,7 +140,7 @@ rule PLINKprune2vcf:
         f"plink/{vcf_basename}.prune.fam",
         f"plink/{vcf_basename}.prune.nosex"
     output:
-        f"{vcf_basename}.prune.vcf"
+        f"{vcf_basename}.prune.vcf.gz"
     log:
         "logs/plinkprune2vcf.log"
     params:
@@ -151,27 +151,18 @@ rule PLINKprune2vcf:
         """
         plink \
         --allow-extra-chr \
+        --keep-allele-order \
         --const-fid 0 \
         --bfile {params[0]} \
-        --export vcf \
+        --recode vcf-iid bgz \
         --out {params[1]} \
         &> {log}
         """
 
-rule CompressPrunevcf:
-    input:
-        f"{vcf_basename}.prune.vcf"
-    output:
-        f"{vcf_basename}.prune.vcf.gz"
-    threads: 4
-    shell:
-        """
-        bgzip {input}
-        """
-
 rule VCF2phylip:
     input:
-        f"{vcf_basename}.prune.vcf.gz"
+        vcf2phylip=config["vcf2phylip_path"],
+        prunevcf=f"{vcf_basename}.prune.vcf.gz"
     output:
         f"pop_stru/phylo/{vcf_basename}.prune.min4.fasta"
     log:
@@ -180,8 +171,8 @@ rule VCF2phylip:
         "pop_stru/phylo/"
     shell:
         """
-        python script/vcf2phylip.py \
-        -i {input} \
+        python {input.vcf2phylip} \
+        -i {input.prunevcf} \
         --output-folder {params} \
         -r \
         -p \
@@ -237,6 +228,5 @@ rule Phylogenictree:
         -gtr \
         -nt \
         {input} \
-        > {output} \
-        &> {log}
+        > {output}
         """
