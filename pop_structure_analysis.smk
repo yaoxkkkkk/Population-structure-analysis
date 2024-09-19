@@ -13,9 +13,10 @@ K_values = config["K_values"]
 
 rule all:
     input:
-        expand(f"pop_stru/ADMIXTURE/{vcf_basename}.K{{K}}.Q", K=K_values),
-        expand(f"pop_stru/ADMIXTURE/{vcf_basename}.K{{K}}.P", K=K_values),
+        expand(f"pop_stru/ADMIXTURE/{vcf_basename}.{{K}}.Q", K=K_values),
+        expand(f"pop_stru/ADMIXTURE/{vcf_basename}.{{K}}.P", K=K_values),
         expand(f"pop_stru/ADMIXTURE/log{{K}}.out", K=K_values),
+        "pop_stru/ADMIXTURE/CV_error.txt",
         f"pop_stru/phylo/{vcf_basename}.nwk",
         f"pop_stru/PCA/{vcf_basename}.eigenvec",
         f"pop_stru/PCA/{vcf_basename}.eigenval"
@@ -203,8 +204,8 @@ rule ADMIXTURE:
     input:
         f"plink/{vcf_basename}.prune.bed"
     output:
-        Q_file=f"pop_stru/ADMIXTURE/{vcf_basename}.K{{K}}.Q",
-        P_file=f"pop_stru/ADMIXTURE/{vcf_basename}.K{{K}}.P",
+        Q_file=f"pop_stru/ADMIXTURE/{vcf_basename}.{{K}}.Q",
+        P_file=f"pop_stru/ADMIXTURE/{vcf_basename}.{{K}}.P",
         log_file=f"pop_stru/ADMIXTURE/log{{K}}.out"
     params:
         K=lambda wildcards: wildcards.K
@@ -214,10 +215,18 @@ rule ADMIXTURE:
         """
         admixture --cv {input} {params.K} | tee {log}
 
-        mv {vcf_basename}.K{params.K}.P {output.P_file}
-        mv {vcf_basename}.K{params.K}.Q {output.Q_file}
+        mv {vcf_basename}.prune.{params.K}.P {output.P_file}
+        mv {vcf_basename}.prune.{params.K}.Q {output.Q_file}
+        """
 
-        grep -h CV pop_stru/ADMIXTURE/log*.out > pop_stru/ADMIXTURE/CV_error.txt
+rule CV_error:
+    input:
+        expand(f"pop_stru/ADMIXTURE/log{{K}}.out", K=K_values)  # K_values是你配置的K值范围
+    output:
+        CV_error="pop_stru/ADMIXTURE/CV_error.txt"
+    shell:
+        """
+        grep -h CV {input} > {output.CV_error}
         """
 
 rule Phylogenictree:
