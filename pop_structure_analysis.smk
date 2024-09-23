@@ -19,13 +19,36 @@ rule all:
         "pop_stru/ADMIXTURE/CV_error.txt",
         f"pop_stru/phylo/{vcf_basename}.nwk",
         f"pop_stru/PCA/{vcf_basename}.eigenvec",
-        f"pop_stru/PCA/{vcf_basename}.eigenval"
+        f"pop_stru/PCA/{vcf_basename}.eigenval",
+        f"plink/{vcf_basename}.nomissing.prune.tfam"
 
-rule VCF2mapfile:
+rule SNPMissingRateAndMAFFilter:
     input:
         vcf_file=config["vcf"]
     output:
-        mapfile=temp(f"plink/{vcf_basename}.mapfile")
+        f"{vcf_basename}.nomissing.vcf.gz"
+    log:
+        "logs/vcfnomissing.log"
+    params:
+        missingrate=config["missingrate"],
+        maf=config["maf"]
+    shell:
+        """
+        vcftools \
+        --gzvcf {input.vcf_file} \
+        --max-missing {params.missingrate} \
+        --maf {params.maf} \
+        --recode \
+        --stdout \
+        | bgzip > {output}
+        &> {log}
+        """
+
+rule VCF2mapfile:
+    input:
+        f"{vcf_basename}.nomissing.vcf.gz"
+    output:
+        mapfile=temp(f"plink/{vcf_basename}.nomissing.mapfile")
     shell:
         """
         bcftools view \
@@ -38,15 +61,15 @@ rule VCF2mapfile:
 
 rule VCF2plink:
     input:
-        vcf_file=config["vcf"],
-        mapfile=f"plink/{vcf_basename}.mapfile"
+        vcf_file=f"{vcf_basename}.nomissing.vcf.gz",
+        mapfile=f"plink/{vcf_basename}.nomissing.mapfile"
     output:
-        map=f"plink/{vcf_basename}.map",
-        ped=f"plink/{vcf_basename}.ped"
+        map=f"plink/{vcf_basename}.nomissing.map",
+        ped=f"plink/{vcf_basename}.nomissing.ped"
     log:
         "logs/vcf2plink.log"
     params:
-        f"plink/{vcf_basename}"
+        f"plink/{vcf_basename}.nomissing"
     shell:
         """
         vcftools \
@@ -54,22 +77,22 @@ rule VCF2plink:
         --plink \
         --chrom-map {input.mapfile} \
         --out {params} \
-		&> {log}
+        &> {log}
         """
         
 rule PLINKmakebed:
     input:
-        f"plink/{vcf_basename}.ped",
-        f"plink/{vcf_basename}.map"
+        f"plink/{vcf_basename}.nomissing.ped",
+        f"plink/{vcf_basename}.nomissing.map"
     output:
-        f"plink/{vcf_basename}.bed",
-        f"plink/{vcf_basename}.bim",
-        f"plink/{vcf_basename}.fam",
-        f"plink/{vcf_basename}.nosex"
+        f"plink/{vcf_basename}.nomissing.bed",
+        f"plink/{vcf_basename}.nomissing.bim",
+        f"plink/{vcf_basename}.nomissing.fam",
+        f"plink/{vcf_basename}.nomissing.nosex"
     log:
         "logs/plinkmakebed.log"
     params:
-        f"plink/{vcf_basename}"
+        f"plink/{vcf_basename}.nomissing"
     shell:
         """
         plink \
@@ -83,16 +106,16 @@ rule PLINKmakebed:
 
 rule PLINKprune:
     input:
-        f"plink/{vcf_basename}.bed",
-        f"plink/{vcf_basename}.bim",
-        f"plink/{vcf_basename}.fam"
+        f"plink/{vcf_basename}.nomissing.bed",
+        f"plink/{vcf_basename}.nomissing.bim",
+        f"plink/{vcf_basename}.nomissing.fam"
     output:
-        f"plink/{vcf_basename}.prune.in",
-        f"plink/{vcf_basename}.prune.out"
+        f"plink/{vcf_basename}.nomissing.prune.in",
+        f"plink/{vcf_basename}.nomissing.prune.out"
     log:
         "logs/plinkprune.log"
     params:
-        file=f"plink/{vcf_basename}",
+        file=f"plink/{vcf_basename}.nomissing",
         window_size=config["indep_pairwise"]["window_size"],
         step_size=config["indep_pairwise"]["step_size"],
         r2=config["indep_pairwise"]["r2"]
@@ -108,21 +131,21 @@ rule PLINKprune:
 
 rule PLINKpruneExtract:
     input:
-        f"plink/{vcf_basename}.bed",
-        f"plink/{vcf_basename}.bim",
-        f"plink/{vcf_basename}.fam",
-        f"plink/{vcf_basename}.prune.in",
-        f"plink/{vcf_basename}.prune.out"
+        f"plink/{vcf_basename}.nomissing.bed",
+        f"plink/{vcf_basename}.nomissing.bim",
+        f"plink/{vcf_basename}.nomissing.fam",
+        f"plink/{vcf_basename}.nomissing.prune.in",
+        f"plink/{vcf_basename}.nomissing.prune.out"
     output:
-        f"plink/{vcf_basename}.prune.bed",
-        f"plink/{vcf_basename}.prune.bim",
-        f"plink/{vcf_basename}.prune.fam",
-        f"plink/{vcf_basename}.prune.nosex"
+        f"plink/{vcf_basename}.nomissing.prune.bed",
+        f"plink/{vcf_basename}.nomissing.prune.bim",
+        f"plink/{vcf_basename}.nomissing.prune.fam",
+        f"plink/{vcf_basename}.nomissing.prune.nosex"
     log:
         "logs/plinkpruneextract.log"
     params:
-        f"plink/{vcf_basename}",
-        f"plink/{vcf_basename}.prune"
+        f"plink/{vcf_basename}.nomissing",
+        f"plink/{vcf_basename}.nomissing.prune"
     shell:
         """
         plink \
@@ -134,19 +157,41 @@ rule PLINKpruneExtract:
         &> {log}
         """
 
+rule PLINKprune2tfile:
+    input:
+        f"plink/{vcf_basename}.nomissing.prune.bed",
+        f"plink/{vcf_basename}.nomissing.prune.bim",
+        f"plink/{vcf_basename}.nomissing.prune.fam"
+    output:
+        f"plink/{vcf_basename}.nomissing.prune.tfam",
+        f"plink/{vcf_basename}.nomissing.prune.tped"
+    log:
+        "logs/PLINKprune2tfile.log"
+    params:
+        f"plink/{vcf_basename}.nomissing.prune"
+    shell:
+        """
+        plink \
+        --bfile {params} \
+        --recode \
+        --transpose \
+        --out {params} \
+        &> {log}
+        """
+
 rule PLINKprune2vcf:
     input:
-        f"plink/{vcf_basename}.prune.bed",
-        f"plink/{vcf_basename}.prune.bim",
-        f"plink/{vcf_basename}.prune.fam",
-        f"plink/{vcf_basename}.prune.nosex"
+        f"plink/{vcf_basename}.nomissing.prune.bed",
+        f"plink/{vcf_basename}.nomissing.prune.bim",
+        f"plink/{vcf_basename}.nomissing.prune.fam",
+        f"plink/{vcf_basename}.nomissing.prune.nosex"
     output:
-        f"{vcf_basename}.prune.vcf.gz"
+        f"{vcf_basename}.nomissing.prune.vcf.gz"
     log:
         "logs/plinkprune2vcf.log"
     params:
-        f"plink/{vcf_basename}",
-        f"{vcf_basename}.prune"
+        f"plink/{vcf_basename}.nomissing.prune",
+        f"{vcf_basename}.nomissing.prune"
     threads: 16
     shell:
         """
@@ -163,9 +208,9 @@ rule PLINKprune2vcf:
 rule VCF2phylip:
     input:
         vcf2phylip=config["vcf2phylip_path"],
-        prunevcf=f"{vcf_basename}.prune.vcf.gz"
+        prunevcf=f"{vcf_basename}.nomissing.prune.vcf.gz"
     output:
-        f"pop_stru/phylo/{vcf_basename}.prune.min4.fasta"
+        f"pop_stru/phylo/{vcf_basename}.nomissing.prune.min4.fasta"
     log:
         "logs/vcf2phylip.log"
     params:
@@ -183,7 +228,7 @@ rule VCF2phylip:
 
 rule PCA:
     input:
-        vcf_file=config["vcf"]
+        f"{vcf_basename}.nomissing.vcf.gz"
     output:
         f"pop_stru/PCA/{vcf_basename}.eigenvec",
         f"pop_stru/PCA/{vcf_basename}.eigenval"
@@ -202,7 +247,7 @@ rule PCA:
 
 rule ADMIXTURE:
     input:
-        f"plink/{vcf_basename}.prune.bed"
+        f"plink/{vcf_basename}.nomissing.prune.bed"
     output:
         Q_file=f"pop_stru/ADMIXTURE/{vcf_basename}.{{K}}.Q",
         P_file=f"pop_stru/ADMIXTURE/{vcf_basename}.{{K}}.P",
@@ -215,8 +260,8 @@ rule ADMIXTURE:
         """
         admixture --cv {input} {params.K} | tee {log}
 
-        mv {vcf_basename}.prune.{params.K}.P {output.P_file}
-        mv {vcf_basename}.prune.{params.K}.Q {output.Q_file}
+        mv {vcf_basename}.nomissing.prune.{params.K}.P {output.P_file}
+        mv {vcf_basename}.nomissing.prune.{params.K}.Q {output.Q_file}
         """
 
 rule CV_error:
@@ -231,7 +276,7 @@ rule CV_error:
 
 rule Phylogenictree:
     input:
-        f"pop_stru/phylo/{vcf_basename}.prune.min4.fasta"
+        f"pop_stru/phylo/{vcf_basename}.nomissing.prune.min4.fasta"
     output:
         f"pop_stru/phylo/{vcf_basename}.nwk"
     log:
