@@ -17,6 +17,7 @@ Just vcf file containing your population variant information in compressed forma
 > Since ADMIXTURE only accpets vcf file with integer format chromosome ID (e.g. 01 for Chr01), please remember to modify your vcf file.
 
 ## What the pipeline does
+- SNP filtered all missing site
 - SNP vcf convert to plink format
 - SNP pruned according to LD block
 - PCA cluster
@@ -24,6 +25,7 @@ Just vcf file containing your population variant information in compressed forma
 - Phylogenic tree construction
 
 ## What to output
-- PCA eigen principle component file (used for PCA plot)
+- PCA eigen principle component file used for PCA plot
 - Tree file in nwk format
 - ADMIXTURE Q file and P file
+- Transform plink format file (tfam) used for TreeMix analysis
