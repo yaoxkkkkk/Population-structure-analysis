@@ -1,11 +1,18 @@
-vcf2phylip_path: "/path/to/vcf2phylip.py"
-vcf: "/path/to/sample.vcf.gz"
+# Input file absolute path
+vcf: "/dssg/home/acct-jiang.lu/jiang.lu/.yaoxk_dir/pop_stru/SH_genome/clean.maf.snp.recode.sample_exclude_modified.vcf.gz"
+
+# Script file absolute path
+vcf2phylip_path: "/dssg/home/acct-jiang.lu/jiang.lu/.yaoxk_dir/pop_stru/SH_genome/script/vcf2phylip.py"
+
+# vcftools filter parameters
+missingrate: 1
+maf: 0.05
 
 # PLINK prune parameters
 indep_pairwise:
-  window_size: 500
-  step_size: 50
-  r2: 0.8
+  window_size: 20
+  step_size: 5
+  r2: 0.2
 
 # K values in ADMIXTURE
 K_values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
