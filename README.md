@@ -28,4 +28,3 @@ Just vcf file containing your population variant information in compressed forma
 - PCA eigen principle component file used for PCA plot
 - Tree file in nwk format
 - ADMIXTURE Q file and P file
-- Transform plink format file (tfam) used for TreeMix analysis
