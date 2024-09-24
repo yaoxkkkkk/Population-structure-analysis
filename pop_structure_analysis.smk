@@ -19,8 +19,7 @@ rule all:
         "pop_stru/ADMIXTURE/CV_error.txt",
         f"pop_stru/phylo/{vcf_basename}.nwk",
         f"pop_stru/PCA/{vcf_basename}.eigenvec",
-        f"pop_stru/PCA/{vcf_basename}.eigenval",
-        f"plink/{vcf_basename}.nomissing.prune.tfam"
+        f"pop_stru/PCA/{vcf_basename}.eigenval"
 
 rule SNPMissingRateAndMAFFilter:
     input:
@@ -154,28 +153,6 @@ rule PLINKpruneExtract:
         --make-bed \
         --extract {input[3]} \
         --out {params[1]} \
-        &> {log}
-        """
-
-rule PLINKprune2tfile:
-    input:
-        f"plink/{vcf_basename}.nomissing.prune.bed",
-        f"plink/{vcf_basename}.nomissing.prune.bim",
-        f"plink/{vcf_basename}.nomissing.prune.fam"
-    output:
-        f"plink/{vcf_basename}.nomissing.prune.tfam",
-        f"plink/{vcf_basename}.nomissing.prune.tped"
-    log:
-        "logs/PLINKprune2tfile.log"
-    params:
-        f"plink/{vcf_basename}.nomissing.prune"
-    shell:
-        """
-        plink \
-        --bfile {params} \
-        --recode \
-        --transpose \
-        --out {params} \
         &> {log}
         """
 
