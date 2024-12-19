@@ -4,12 +4,12 @@ A pipeline using SNP variant information to conduct population structure analysi
 ![image](https://github.com/user-attachments/assets/574bd86f-1035-492c-add0-92ca89268790)
 
 ## Dependent software/script
-- PLINK1.9
-- VCF2PCACluster
-- ADMIXTURE
-- FastTree
-- VCFtools
-- bgzip
+- [PLINK1.9](https://www.cog-genomics.org/plink2/)
+- [VCF2PCACluster](https://github.com/hewm2008/VCF2PCACluster)
+- [ADMIXTURE](https://dalexander.github.io/admixture/download.html)
+- [FastTree](https://morgannprice.github.io/fasttree/)
+- [VCFtools](https://vcftools.github.io/)
+- bgzip (part of [htslib](https://github.com/samtools/htslib))
 - [vcf2phylip](https://github.com/edgardomortiz/vcf2phylip)
 
 ## What to input
