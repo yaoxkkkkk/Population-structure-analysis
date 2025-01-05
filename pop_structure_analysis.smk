@@ -28,15 +28,12 @@ rule SNPMissingRateAndMAFFilter:
         f"{vcf_basename}.nomissing.vcf.gz"
     log:
         "logs/vcfnomissing.log"
-    params:
-        missingrate=config["missingrate"],
-        maf=config["maf"]
     shell:
         """
         vcftools \
         --gzvcf {input.vcf_file} \
-        --max-missing {params.missingrate} \
-        --maf {params.maf} \
+        --max-missing 1 \
+        --maf 0.05 \
         --recode \
         --stdout \
         | bgzip > {output}
