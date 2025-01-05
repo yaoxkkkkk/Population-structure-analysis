@@ -37,7 +37,7 @@ rule SNPMissingRateAndMAFFilter:
         --recode \
         --stdout \
         | bgzip > {output}
-        &> {log}
+        2> {log}
         """
 
 rule VCF2mapfile:
@@ -73,7 +73,7 @@ rule VCF2plink:
         --plink \
         --chrom-map {input.mapfile} \
         --out {params} \
-        &> {log}
+        2> {log}
         """
         
 rule PLINKmakebed:
@@ -97,7 +97,7 @@ rule PLINKmakebed:
         --double-id \
         --allow-extra-chr \
         --out {params} \
-        &> {log}
+        2> {log}
         """
 
 rule PLINKprune:
@@ -122,7 +122,7 @@ rule PLINKprune:
         -bfile {params.file} \
         --indep-pairwise {params.window_size} {params.step_size} {params.r2} \
         --out {params.file} \
-        &> {log}
+        2> {log}
         """
 
 rule PLINKpruneExtract:
@@ -150,7 +150,7 @@ rule PLINKpruneExtract:
         --make-bed \
         --extract {input[3]} \
         --out {params[1]} \
-        &> {log}
+        2> {log}
         """
 
 rule PLINKprune2vcf:
@@ -176,7 +176,7 @@ rule PLINKprune2vcf:
         --bfile {params[0]} \
         --recode vcf-iid bgz \
         --out {params[1]} \
-        &> {log}
+        2> {log}
         """
 
 rule VCF2phylip:
@@ -197,7 +197,7 @@ rule VCF2phylip:
         -r \
         -p \
         -f \
-        &> {log}
+        2> {log}
         """
 
 rule PCA:
@@ -216,7 +216,7 @@ rule PCA:
         VCF2PCACluster -InVCF {input} \
         -OutPut {params} \
         -MAF 0.05 \
-        &> {log}
+        2> {log}
         """
 
 rule ADMIXTURE:
@@ -261,5 +261,6 @@ rule Phylogenictree:
         -gtr \
         -nt \
         {input} \
-        > {output}
+        1> {output} \
+        2> {log}
         """
