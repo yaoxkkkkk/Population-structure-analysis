@@ -1,12 +1,8 @@
 # Input file absolute path
-vcf: "/dssg/home/acct-jiang.lu/jiang.lu/.yaoxk_dir/pop_stru/SH_genome/clean.maf.snp.recode.sample_exclude_modified.vcf.gz"
+vcf: ""
 
 # Script file absolute path
-vcf2phylip_path: "/dssg/home/acct-jiang.lu/jiang.lu/.yaoxk_dir/pop_stru/SH_genome/script/vcf2phylip.py"
-
-# vcftools filter parameters
-missingrate: 1
-maf: 0.05
+vcf2phylip_path: "/path/to/vcf2phylip.py"
 
 # PLINK prune parameters
 indep_pairwise:
