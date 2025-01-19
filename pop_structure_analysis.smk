@@ -32,6 +32,8 @@ rule SNPMissingRateAndMAFFilter:
         """
         vcftools \
         --gzvcf {input.vcf_file} \
+        --remove-indels \
+        --max-alleles 2 \
         --max-missing 1 \
         --maf 0.05 \
         --recode \
