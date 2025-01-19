@@ -25,7 +25,7 @@ rule SNPMissingRateAndMAFFilter:
     input:
         vcf_file=config["vcf"]
     output:
-        f"{vcf_basename}.nomissing.vcf.gz"
+        f"{vcf_basename}.nomissing.snp.vcf.gz"
     log:
         "logs/vcfnomissing.log"
     shell:
@@ -44,7 +44,7 @@ rule SNPMissingRateAndMAFFilter:
 
 rule VCF2mapfile:
     input:
-        f"{vcf_basename}.nomissing.vcf.gz"
+        f"{vcf_basename}.nomissing.snp.vcf.gz"
     output:
         mapfile=temp(f"plink/{vcf_basename}.nomissing.mapfile")
     shell:
